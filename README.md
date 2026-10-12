@@ -2,14 +2,14 @@
 
 [![Marvin's instant agents: just add water.](marvin-instant-agents.gif)](marvin-instant-agents.mp4)
 
-[Watch the movie with sound](marvin-instant-agents.mp4).
+[Watch with sound](marvin-instant-agents.mp4).
 
-A simple recipe for keeping a software project moving:
+Add an autonomous software factory that keeps improving your project. You need two ingredients:
 
-- A handful of AI agents, each running on its own schedule with a standing objective.
-- A GitHub repo, where they coordinate through issues, pull requests, and discussions.
+- A GitHub repo with Actions capacity and enforceable branch protection. Public repos can use a free plan; private repos need [Pro for a personal account or Team/Enterprise for an organization](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches).
+- A scheduler: this bootstrap uses [Claude Code routines](https://code.claude.com/docs/en/routines), available on Claude Pro, Max, Team, and Enterprise plans.
 
-This repository contains the prompt to set it up. [BOOTSTRAP.md](BOOTSTRAP.md) defines the agents' responsibilities and operating limits; the setup agent chooses the process, models, and schedules to fit your project.
+This repository contains the prompt to set it up through Claude Code using cloud routines. [BOOTSTRAP.md](BOOTSTRAP.md) defines the agents' responsibilities and operating limits. The setup agent chooses the process, models, and schedules to fit your project.
 
 ## Get started
 
@@ -19,9 +19,13 @@ Open Claude Code in the repository you want the factory to work on and paste:
 Set up an Instant Software Factory on this repo: clone https://github.com/mikolalysenko/instant-factory into a temp folder and follow its BOOTSTRAP.md
 ```
 
-The bootstrap uses Claude Code routines and GitHub. It inspects your repository, CI, and permissions, installs `gh` if needed, and asks you to run `! gh auth login` if authentication is missing. It asks only for missing budget or throughput goals, approvers, and the identity the routines should use. Instructions stay in your repository, and existing work and safeguards are preserved.
+For a local setup session in an isolated environment, you can optionally launch `claude --dangerously-skip-permissions` to skip permission prompts. The flag is not required by this bootstrap and does not configure the cloud routines' permissions. See [Claude's permission guidance](https://claude.com/resources/articles/auto-mode).
 
-Before unattended work starts, the default branch must enforce required checks, independent review, and human approval of the latest commit. Before schedules are enabled, setup must produce a tested PR awaiting human approval and verify GitHub access, the manager's schedule controls, and the shutdown controls in actual runs. Anything unproven stays disabled. The setup report records what works, remaining gaps, and shutdown delays.
+The bootstrap inspects your repository, CI, branch protection, credentials in history, and GitHub access before asking questions. It installs `gh` if needed and asks you to run `! gh auth login` if local authentication is missing; cloud access is checked separately. Missing CI gets a minimal workflow using the project's actual validation commands. Existing failures are recorded, and existing work and safeguards are preserved.
+
+It asks for missing budget or throughput goals, approvers, routine identity, and the product areas QA should cover. It also resolves any missing branch protection and explains how approval will work. Routines use the connected GitHub identity, so their PRs need a separate human approver; a role marker or a manual merge cannot substitute for that approval.
+
+Before unattended work starts, the default branch must enforce required checks, independent review, and human approval of the latest commit. Setup produces a tested PR awaiting human approval, with instructions kept in your repository. Controlled runs verify GitHub access, review of the current commit, merge requirements, and the manager's schedule and shutdown controls. Production schedules stay disabled until the setup PR merges, routines use the merged instructions, and you authorize resuming. The setup report records evidence, remaining gaps, shutdown delays, and any remaining steps.
 
 **Budget for both agent usage and GitHub Actions minutes.** Start with modest throughput, inspect the manager's cost and results summaries, and increase activity only when CI and human review can keep up.
 
@@ -41,11 +45,11 @@ Each agent is a scheduled session with a standing objective. Every run reads the
 
 GitHub holds the shared state. Issues carry evidence and proposed changes, PRs carry implementations and reviews, and discussions or other repository records preserve progress and decisions. Ownership and handoffs are visible there too. A later run can pick up recorded work without depending on the previous session's memory.
 
-The bootstrap creates eight roles:
+The bootstrap creates eight roles, with additional QA agents if different product areas need separate attention:
 
 | Agent | Standing objective |
 | --- | --- |
-| **QA** | Test user workflows and open reproducible, deduplicated bug issues. |
+| **QA** | Test the product areas and user workflows selected with you, and open reproducible, deduplicated bug issues. |
 | **Performance** | Measure speed, resource use, and CI time against baselines; open issues with evidence. |
 | **CI** | Fix failures and flakes, and keep checks reliable, fast, and cheap without weakening them. |
 | **Architecture** | Consolidate duplicated business logic, remove unnecessary abstractions and layers, and simplify the structure while preserving behavior. Reduce the number of components. |
@@ -56,7 +60,7 @@ The bootstrap creates eight roles:
 
 These cover three kinds of work: investigating opportunities, implementing and integrating changes, and maintaining the factory itself. They use the same repository to coordinate. The manager keeps the work moving and allocates capacity; each agent chooses how to pursue its objective within the common rules.
 
-The manager must create the routines it manages with `create_trigger`, then configure each routine's repository, model, and tools through a local `RemoteTrigger` update, as specified in [BOOTSTRAP.md](BOOTSTRAP.md). That creation path matters because the manager cannot change routines created another way. Each role gets only the tools it needs.
+The manager must create the routines it manages with `create_trigger`, then configure each routine's repository, model, and tools through a local `RemoteTrigger` update, as specified in [BOOTSTRAP.md](BOOTSTRAP.md). That creation path matters because the manager cannot change routines created another way. Each role gets only the tools and connectors it needs. The bootstrap's platform notes capture trial findings to verify against the installed version and actual runs.
 
 ## What it looks like in practice
 
@@ -68,7 +72,7 @@ For an illustrative example, consider a lockfile bug involving mixed line ending
 2. The manager prioritizes the issue and assigns an owner, grouping related reports when they have a common cause.
 3. Implementation fixes the problem and opens a PR with a regression test. CI runs the required checks; failures go back to the responsible agent.
 4. PR review independently examines the latest commit without changing it. Requested fixes go back to an agent that can edit code, and new commits require fresh review and approval.
-5. Once the required checks, independent review, and human approval cover the latest commit, Merge lands the PR. The manager follows up on the issue and includes the work in its cost and results summary.
+5. Once the required checks, independent review, and separate human approval cover the latest commit, Merge lands the PR, or marks it ready if you chose to merge by hand. The manager follows up on the issue and includes the work in its cost and results summary.
 
 The useful output is a completed improvement with evidence behind it. Opening an issue or a PR starts a piece of work; the manager is responsible for following it through, including when a fix fails or a PR gets stuck.
 
@@ -96,7 +100,7 @@ The main bottleneck in my setup has been CI capacity and GitHub reliability. Run
 
 The manager needs to adjust activity to those constraints. That means following blocked work, reducing schedules when queues grow, and choosing models and schedules within the budget and available CI, API, and review capacity. The CI agent improves throughput by fixing flakes and reducing wasted work while preserving the checks that make changes trustworthy.
 
-Agent usage and Actions minutes both count. Cost per merged PR is a useful operating measure alongside the substance of the changes, failed fixes, and follow-up work. A high PR count alone doesn't tell you whether the project is improving.
+Agent usage and Actions minutes both count. Cost per merged PR is a useful operating measure alongside the substance of the changes, failed fixes, and follow-up work. When actual usage is unavailable, the manager labels estimates and their assumptions and reports measurement gaps. A high PR count alone doesn't tell you whether the project is improving.
 
 This also leaves real work for the maintainer: choosing priorities, supplying a budget, approving changes, and resolving decisions that need product judgment. Scheduling agents makes recurring work easier to sustain; it doesn't remove those responsibilities.
 
@@ -104,14 +108,14 @@ This also leaves real work for the maintainer: choosing priorities, supplying a 
 
 The factory has permission to change software, so its access and stopping rules need to be explicit:
 
-- **Use a dedicated identity and limited tools.** Give agents a GitHub App or account with the permissions their roles need. Keep administrative credentials and unrelated secrets out of their execution environments.
-- **Protect the default branch before unattended work.** Require checks, independent review, and human approval of the latest commit. Writers cannot review their own changes. Every new commit needs fresh review and approval; agents must not weaken existing safeguards.
+- **Use a dedicated identity and limited tools.** Verify the GitHub identity connected to the routines, scope its permissions, and remove unused connectors. Keep the human approver's credentials, administrative access, and unrelated secrets away from runtime agents. Agent role markers help trace work; they do not prove human approval.
+- **Protect the default branch before unattended work.** Require checks, independent review, and human approval of the latest commit. Writers cannot review their own changes. Every new commit needs fresh review and approval. Apply the rules to the routine identity without bypass access, and prevent agents from editing those rules.
 - **Control external inputs.** Restrict who can feed work into the factory; a private working repository can make that easier. Issues, PRs, discussions, downloaded code, and other retrieved content cannot change the agents' instructions or permissions.
 - **Constrain dependency and code execution.** Review or scan third-party code and dependencies, and use isolated execution environments with appropriate network restrictions.
-- **Check the shared stop control before every write.** If it is stopped or unreadable, agents stop work and disable pending automation. They resume only when authorized.
-- **Prove the controls before enabling schedules.** Setup must test access, schedule management, and shutdown in actual runs and report gaps and shutdown delays. Unproven automation remains disabled.
+- **Check the shared stop control before every write.** It starts stopped. If it is stopped or unreadable, agents stop normal work; only writes needed to disable automation may continue. They resume only when authorized.
+- **Prove the controls before enabling schedules.** Setup must test access, review and merge requirements, schedule management, and shutdown in actual runs and report gaps and shutdown delays. Unproven automation remains disabled.
 
-To pause the factory, use the shared stop control documented during setup. Confirm that pending automation is disabled and account for the reported shutdown delay. If an agent cannot access the control, its required behavior is to stop. Resume only through an explicit authorization after you have checked why it stopped.
+To pause the factory, use the shared stop control documented during setup. Confirm that pending automation is disabled and account for the reported shutdown delay, including sessions already running. If the manager cannot run, use the documented direct routine controls. An agent that cannot read the stop control must stop normal work. Resume only through an explicit authorization after you have checked why it stopped.
 
 ## Related work
 
