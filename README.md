@@ -62,20 +62,6 @@ These cover three kinds of work: investigating opportunities, implementing and i
 
 The manager must create the routines it manages with `create_trigger`, then configure each routine's repository, model, and tools through a local `RemoteTrigger` update, as specified in [BOOTSTRAP.md](BOOTSTRAP.md). That creation path matters because the manager cannot change routines created another way. Each role gets only the tools and connectors it needs. The bootstrap's platform notes capture trial findings to verify against the installed version and actual runs.
 
-## What it looks like in practice
-
-I've been using this pattern on [socket-patch](https://github.com/SocketDev/socket-patch), a CLI that applies backported security fixes to open source dependencies. It has to work across package ecosystems, package managers, and operating systems. That creates a broad surface of concrete compatibility problems: lockfile formats, installation layouts, platform differences, and interactions with other tools.
-
-For an illustrative example, consider a lockfile bug involving mixed line endings on Windows:
-
-1. QA reproduces the failure, checks for an existing issue, and records the commands, environment, expected result, and actual result.
-2. The manager prioritizes the issue and assigns an owner, grouping related reports when they have a common cause.
-3. Implementation fixes the problem and opens a PR with a regression test. CI runs the required checks; failures go back to the responsible agent.
-4. PR review independently examines the latest commit without changing it. Requested fixes go back to an agent that can edit code, and new commits require fresh review and approval.
-5. Once the required checks, independent review, and separate human approval cover the latest commit, Merge lands the PR, or marks it ready if you chose to merge by hand. The manager follows up on the issue and includes the work in its cost and results summary.
-
-The useful output is a completed improvement with evidence behind it. Opening an issue or a PR starts a piece of work; the manager is responsible for following it through, including when a fix fails or a PR gets stuck.
-
 ## Why not one really good agent?
 
 A capable agent can plan, split up a task, and work through a well-defined goal. A spec and a long session can handle a single objective well.
@@ -94,7 +80,7 @@ I still do interactive work. For a new feature or a major change, I start a sess
 
 That feature goes through the same checks, independent review, and approval process as the agents' PRs. Once it lands, the standing objectives cover it too. Human direction supplies new goals, and the recurring agents keep attending to the consequences as the project evolves.
 
-## What limits it
+## Drawbacks and limitations
 
 The main bottleneck in my setup has been CI capacity and GitHub reliability. Running agents more often only helps while validation and integration can absorb their output. Otherwise you grow a queue of issues and PRs. Investigators can outpace implementers, implementers can outpace reviewers, and multiple fixes can collide in the same code.
 
